@@ -4,16 +4,8 @@ import '../../firebase_options.dart';
 class FirebaseService {
   static Future<void> initialize() async {
     await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+      options: DefaultFirebaseOptions.currentPlatform, // ✅ đúng tên, đúng tham số
     );
-    print('Firebase Service Initialized');
+    print('✅ Firebase initialized successfully!');
   }
 }
-
-
-
-
-
-
-
-

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 class PlantModel {
   final String id;
   final String userId;
@@ -21,22 +22,22 @@ class PlantModel {
     required this.updatedAt,
   });
 
-  // Convert to Map for Firestore
+  // ✅ Convert to Map for Firestore
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'userId': userId,
       'name': name,
       'species': species,
-      'description': description,
-      'plantedDate': plantedDate.toIso8601String(),
-      'imageUrl': imageUrl,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      if (description != null) 'description': description,
+      'plantedDate': plantedDate,
+      if (imageUrl != null) 'imageUrl': imageUrl,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
     };
   }
 
-  // Create from Firestore document
+  // ✅ Create from Firestore document
   factory PlantModel.fromMap(Map<String, dynamic> map) {
     return PlantModel(
       id: map['id'] ?? '',
@@ -44,10 +45,17 @@ class PlantModel {
       name: map['name'] ?? '',
       species: map['species'] ?? '',
       description: map['description'],
-      plantedDate: DateTime.parse(map['plantedDate']),
+      // 🔥 Firestore lưu DateTime thành Timestamp, không phải string
+      plantedDate: (map['plantedDate'] is Timestamp)
+          ? (map['plantedDate'] as Timestamp).toDate()
+          : DateTime.parse(map['plantedDate']),
       imageUrl: map['imageUrl'],
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: DateTime.parse(map['updatedAt']),
+      createdAt: (map['createdAt'] is Timestamp)
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.parse(map['createdAt']),
+      updatedAt: (map['updatedAt'] is Timestamp)
+          ? (map['updatedAt'] as Timestamp).toDate()
+          : DateTime.parse(map['updatedAt']),
     );
   }
 
@@ -77,15 +85,5 @@ class PlantModel {
   }
 
   // Calculate plant age in days
-  int get ageInDays {
-    return DateTime.now().difference(plantedDate).inDays;
-  }
+  int get ageInDays => DateTime.now().difference(plantedDate).inDays;
 }
-
-
-
-
-
-
-
-

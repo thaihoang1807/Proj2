@@ -22,7 +22,7 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   final _nameController = TextEditingController();
   final _speciesController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   DateTime? _plantedDate;
   XFile? _pickedImage;
   bool _isLoading = false;
@@ -36,12 +36,19 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
   }
 
   Future<void> _handleSubmit() async {
+    // --- Tối ưu: Lấy context ra trước ---
+    // Lưu Navigator và ScaffoldMessenger trước khi vào await
+    // để đảm bảo chúng vẫn hợp lệ sau khi await
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    // ------------------------------------
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     if (_plantedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      scaffoldMessenger.showSnackBar(
         const SnackBar(content: Text('Vui lòng chọn ngày trồng')),
       );
       return;
@@ -76,35 +83,42 @@ class _AddPlantScreenState extends State<AddPlantScreen> {
         updatedAt: DateTime.now(),
       );
 
+      // Await hàm provider (đây là lúc context có thể bị huỷ)
       final success = await context.read<PlantProvider>().addPlant(plant);
 
-      if (mounted) {
-        setState(() => _isLoading = false);
+      // --- SỬA LỖI ---
+      // Kiểm tra `mounted` (hoặc `context.mounted`) NGAY SAU await
+      // VÀ TRƯỚC KHI dùng Navigator/ScaffoldMessenger
+      if (!mounted) return;
 
-        if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã thêm cây mới'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Lỗi khi thêm cây'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
+      // Giờ thì dùng các biến đã lưu ở trên, an toàn 100%
+      setState(() => _isLoading = false);
+
+      if (success) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Đã thêm cây mới'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        navigator.pop(); // Dùng biến navigator đã lưu
+      } else {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Lỗi khi thêm cây (Provider)'), // Báo lỗi rõ hơn
+            backgroundColor: Colors.red,
+          ),
         );
       }
+    } catch (e) {
+      // --- SỬA LỖI ---
+      // Vẫn kiểm tra `mounted` sau Await (nếu await bị exception)
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Lỗi: $e')),
+      );
     }
   }
 

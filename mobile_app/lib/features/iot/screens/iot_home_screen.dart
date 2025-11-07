@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'sensor_chart_screen.dart';
+// *** THÊM DÒNG NÀY ***
+import 'threshold_settings_screen'; // Import màn hình cài đặt mới
 
 class IotHomeScreen extends StatefulWidget {
   const IotHomeScreen({Key? key}) : super(key: key);
@@ -64,6 +66,23 @@ class _IotHomeScreenState extends State<IotHomeScreen> {
       appBar: AppBar(
         title: const Text("Smart Greenhouse"),
         backgroundColor: Colors.green[700],
+
+        // *** THÊM PHẦN NÀY (NÚT CÀI ĐẶT) ***
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: "Cài đặt ngưỡng",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ThresholdSettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+        // *** HẾT PHẦN THÊM ***
       ),
       backgroundColor: Colors.grey[100],
       body: ListView(
@@ -262,12 +281,12 @@ class _IotHomeScreenState extends State<IotHomeScreen> {
                         Text(
                           value,
                           // *** SỬA ĐỔI: Font chữ nhỏ hơn nữa ***
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: color,
-                                fontSize: 16, // Cố định cỡ chữ
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: color,
+                                    fontSize: 16, // Cố định cỡ chữ
+                                  ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -410,4 +429,3 @@ class _IotHomeScreenState extends State<IotHomeScreen> {
     );
   }
 }
-

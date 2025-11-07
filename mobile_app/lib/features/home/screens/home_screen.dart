@@ -343,8 +343,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (confirmed == true && mounted) {
       final authProvider = context.read<AuthProvider>();
       final userId = authProvider.currentUser?.id ?? '';
-      final success = await context.read<PlantProvider>().deletePlant(plantId, userId);
-      if (mounted) {
+      final success = await context.read<PlantProvider>().deletePlant(plantId);      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(success ? 'Đã xóa cây' : 'Lỗi khi xóa cây'),

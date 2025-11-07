@@ -155,8 +155,7 @@ class _EditPlantScreenState extends State<EditPlantScreen> {
     if (confirmed == true && mounted) {
       setState(() => _isLoading = true);
       
-      final success = await context.read<PlantProvider>().deletePlant(widget.plantId, _plant!.userId);
-      
+final success = await context.read<PlantProvider>().deletePlant(widget.plantId);      
       if (mounted) {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(

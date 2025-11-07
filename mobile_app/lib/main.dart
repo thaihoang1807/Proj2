@@ -7,6 +7,7 @@ import 'providers/plant_provider.dart';
 import 'providers/diary_provider.dart';
 import 'providers/iot_provider.dart';
 import 'providers/notification_provider.dart';
+import 'package:firebase_core/firebase_core.dart'; // ✅ BẮT BUỘC phải có dòng này
 
 void main() async {
   // Ensure Flutter bindings are initialized

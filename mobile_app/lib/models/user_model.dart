@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class UserModel {
   final String id;
   final String email;
@@ -20,7 +22,7 @@ class UserModel {
       'email': email,
       'name': name,
       'photoUrl': photoUrl,
-      'createdAt': createdAt.toIso8601String(),
+      'createdAt': Timestamp.fromDate(createdAt),
     };
   }
 
@@ -31,11 +33,13 @@ class UserModel {
       email: map['email'] ?? '',
       name: map['name'] ?? '',
       photoUrl: map['photoUrl'],
-      createdAt: DateTime.parse(map['createdAt']),
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : DateTime.parse(map['createdAt']),
     );
   }
 
-  // CopyWith method for immutability
+  // CopyWith for immutability
   UserModel copyWith({
     String? id,
     String? email,
@@ -51,12 +55,7 @@ class UserModel {
       createdAt: createdAt ?? this.createdAt,
     );
   }
+
+  @override
+  String toString() => 'UserModel(id: $id, email: $email, name: $name)';
 }
-
-
-
-
-
-
-
-

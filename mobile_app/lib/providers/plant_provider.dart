@@ -1,13 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/plant_model.dart';
-import '../services/firebase/firestore_service.dart';
-import '../services/firebase/storage_service.dart';
+import '../services/api/plant_api_service.dart';
 
 class PlantProvider with ChangeNotifier {
-  final FirestoreService _firestore = FirestoreService();
-  final StorageService _storage = StorageService();
-  
+  final PlantApiService _plantApiService = PlantApiService();
+
   List<PlantModel> _plants = [];
   PlantModel? _selectedPlant;
   bool _isLoading = false;
@@ -28,7 +25,8 @@ class PlantProvider with ChangeNotifier {
         species: 'Succulent',
         description: 'Cây sen đá dễ trồng, chịu hạn tốt',
         plantedDate: DateTime.now().subtract(const Duration(days: 30)),
-        imageUrl: 'https://images.unsplash.com/photo-1459156212016-c812468e2115?w=500',
+        imageUrl:
+            'https://images.unsplash.com/photo-1459156212016-c812468e2115?w=500',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ),
@@ -39,7 +37,8 @@ class PlantProvider with ChangeNotifier {
         species: 'Pothos',
         description: 'Cây trầu bà lá xanh mát, dễ chăm sóc',
         plantedDate: DateTime.now().subtract(const Duration(days: 45)),
-        imageUrl: 'https://images.unsplash.com/photo-1463320726281-696a485928c7?w=500',
+        imageUrl:
+            'https://images.unsplash.com/photo-1463320726281-696a485928c7?w=500',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ),
@@ -50,7 +49,8 @@ class PlantProvider with ChangeNotifier {
         species: 'Rose',
         description: 'Hoa hồng đỏ thắm, hương thơm ngát',
         plantedDate: DateTime.now().subtract(const Duration(days: 60)),
-        imageUrl: 'https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?w=500',
+        imageUrl:
+            'https://images.unsplash.com/photo-1518709594023-6eab9bab7b23?w=500',
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ),
@@ -58,156 +58,133 @@ class PlantProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Load plants from Firestore
+  // Load plants for a user
   Future<void> loadPlants(String userId) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
     try {
-      final data = await _firestore.queryCollection('plants', 'userId', userId);
-      _plants = data.map((plantData) => PlantModel.fromMap(plantData)).toList();
-      _plants.sort((a, b) => b.createdAt.compareTo(a.createdAt)); // Sort by newest
+      _isLoading = true;
       _error = null;
+      notifyListeners();
+
+      _plants = await _plantApiService.getPlantsByUserId(userId);
+
+      _isLoading = false;
+      notifyListeners();
     } catch (e) {
-      _error = 'Lỗi tải danh sách cây: $e';
-      print('Error loading plants: $e');
-    } finally {
+      _error = e.toString();
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Get single plant by ID
-  PlantModel? getPlantById(String plantId) {
+  // Add new plant
+  Future<bool> addPlant(PlantModel plant) async {
     try {
-      return _plants.firstWhere((plant) => plant.id == plantId);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Add plant with image upload
-  Future<bool> addPlant(PlantModel plant, {File? imageFile}) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      String? imageUrl;
-      
-      // Upload image first if provided
-      if (imageFile != null) {
-        final path = 'plants/${plant.userId}/${plant.id}/profile.jpg';
-        imageUrl = await _storage.uploadImage(path, imageFile);
-      }
-      
-      // Save plant to Firestore
-      final plantData = plant.toMap();
-      if (imageUrl != null) {
-        plantData['imageUrl'] = imageUrl;
-      }
-      plantData['createdAt'] = DateTime.now().toIso8601String();
-      
-      await _firestore.addDocument('plants', plantData);
-      
-      // Reload plants
-      await loadPlants(plant.userId);
-      
-      _error = null;
-      return true;
-    } catch (e) {
-      _error = 'Lỗi thêm cây: $e';
-      print('Error adding plant: $e');
+      _isLoading = true;
       notifyListeners();
-      return false;
-    } finally {
+
+      // 1. Gọi API, API trả về ID cây mới (ví dụ: "abc123xyz")
+      var plantId = await _plantApiService.addPlant(plant);
+
+      // 2. Kiểm tra xem API có trả về ID không
+      if (plantId != null) {
+        
+        // --- ĐÂY LÀ PHẦN SỬA LỖI ---
+        // Dòng cũ của bạn (bị lỗi): _plants.add(plant.copyWith(id: plantId));
+        // Lỗi này xảy ra vì hàm `copyWith` có thể không tồn tại hoặc bị lỗi.
+
+        // Cách sửa: Tạo một đối tượng PlantModel mới bằng tay
+        // Lấy toàn bộ thông tin từ `plant` (user nhập vào)
+        // NHƯNG cập nhật `id` bằng `plantId` mới từ Firestore
+        final newPlantWithId = PlantModel(
+          id: plantId, // <-- Dùng ID mới từ Firestore
+          userId: plant.userId,
+          name: plant.name,
+          species: plant.species,
+          description: plant.description,
+          imageUrl: plant.imageUrl,
+          plantedDate: plant.plantedDate,
+          // Gán createdAt/updatedAt từ object 'plant' (nếu bạn muốn)
+          // Hoặc gán DateTime.now() mới
+          createdAt: plant.createdAt, 
+          updatedAt: plant.updatedAt,
+        );
+
+        // Thêm cây mới (với ID đúng) vào danh sách local
+        _plants.add(newPlantWithId);
+        
+        // --- KẾT THÚC SỬA LỖI ---
+
+        _isLoading = false;
+        notifyListeners();
+        return true; // <-- Trả về TRUE (thành công)
+      } else {
+        // Nếu ApiService vì lý do nào đó trả về null
+        _isLoading = false;
+        notifyListeners();
+        return false; // <-- Trả về FALSE (thất bại)
+      }
+    } catch (e) {
+      _error = e.toString();
       _isLoading = false;
       notifyListeners();
+      return false; // <-- Trả về FALSE (nếu có lỗi)
     }
   }
 
   // Update plant
-  Future<bool> updatePlant(String plantId, PlantModel plant, {File? newImageFile}) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<bool> updatePlant(String plantId, PlantModel plant) async {
     try {
-      String? imageUrl = plant.imageUrl;
-      
-      // Upload new image if provided
-      if (newImageFile != null) {
-        // Delete old image if exists
-        if (plant.imageUrl != null && plant.imageUrl!.isNotEmpty) {
-          try {
-            await _storage.deleteImage(plant.imageUrl!);
-          } catch (e) {
-            print('Error deleting old image: $e');
-          }
-        }
-        
-        // Upload new image
-        final path = 'plants/${plant.userId}/$plantId/profile.jpg';
-        imageUrl = await _storage.uploadImage(path, newImageFile);
-      }
-      
-      // Update plant in Firestore
-      final plantData = plant.toMap();
-      plantData['imageUrl'] = imageUrl;
-      plantData['updatedAt'] = DateTime.now().toIso8601String();
-      
-      await _firestore.updateDocument('plants', plantId, plantData);
-      
-      // Reload plants
-      await loadPlants(plant.userId);
-      
-      _error = null;
-      return true;
-    } catch (e) {
-      _error = 'Lỗi cập nhật cây: $e';
-      print('Error updating plant: $e');
+      _isLoading = true;
       notifyListeners();
-      return false;
-    } finally {
+
+      var success = await _plantApiService.updatePlant(plantId, plant);
+
+      if (success) {
+        var index = _plants.indexWhere((p) => p.id == plantId);
+        if (index != -1) {
+          _plants[index] = plant;
+        }
+      }
+
       _isLoading = false;
       notifyListeners();
+
+      return success;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
   }
 
   // Delete plant
-  Future<bool> deletePlant(String plantId, String userId) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<bool> deletePlant(String plantId) async {
     try {
-      final plant = getPlantById(plantId);
-      
-      // Delete image from Storage
-      if (plant?.imageUrl != null && plant!.imageUrl!.isNotEmpty) {
-        try {
-          await _storage.deleteImage(plant.imageUrl!);
-        } catch (e) {
-          print('Error deleting plant image: $e');
-        }
+      print('🪴 [DEBUG] deletePlant called with ID: "$plantId"'); // 👀 kiểm tra
+      if (plantId.isEmpty) {
+        print('⚠️ [ERROR] Plant ID is empty → cannot delete!');
+        return false;
       }
-      
-      // Delete plant from Firestore
-      await _firestore.deleteDocument('plants', plantId);
-      
-      // TODO: Also delete related diary entries (cascade delete)
-      
-      // Reload plants
-      await loadPlants(userId);
-      
-      _error = null;
-      return true;
-    } catch (e) {
-      _error = 'Lỗi xóa cây: $e';
-      print('Error deleting plant: $e');
+
+      _isLoading = true;
       notifyListeners();
-      return false;
-    } finally {
+
+      var success = await _plantApiService.deletePlant(plantId);
+
+      if (success) {
+        _plants.removeWhere((p) => p.id == plantId);
+      }
+
       _isLoading = false;
       notifyListeners();
+      return success;
+    } catch (e) {
+      print('🔥 Error in deletePlant: $e');
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
   }
 
@@ -217,16 +194,14 @@ class PlantProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Search plants (local search)
-  List<PlantModel> searchPlants(String query) {
-    if (query.isEmpty) return _plants;
-    
-    query = query.toLowerCase();
-    return _plants.where((plant) {
-      return plant.name.toLowerCase().contains(query) ||
-             (plant.species?.toLowerCase().contains(query) ?? false) ||
-             (plant.description?.toLowerCase().contains(query) ?? false);
-    }).toList();
+  // Search plants
+  Future<List<PlantModel>> searchPlants(String userId, String query) async {
+    try {
+      return await _plantApiService.searchPlants(userId, query);
+    } catch (e) {
+      _error = e.toString();
+      return [];
+    }
   }
 
   // Clear error
@@ -235,11 +210,3 @@ class PlantProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-
-
-
-
-
-
-
-

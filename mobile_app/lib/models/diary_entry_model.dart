@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class DiaryEntryModel {
   final String id;
   final String plantId;
@@ -28,8 +30,8 @@ class DiaryEntryModel {
       'content': content,
       'imageUrls': imageUrls,
       'activityType': activityType,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': Timestamp.fromDate(createdAt), // ✅ Sửa: Dùng Timestamp
+      'updatedAt': Timestamp.fromDate(updatedAt), // ✅ Sửa: Dùng Timestamp
     };
   }
 
@@ -42,8 +44,9 @@ class DiaryEntryModel {
       content: map['content'] ?? '',
       imageUrls: List<String>.from(map['imageUrls'] ?? []),
       activityType: map['activityType'] ?? 'observation',
-      createdAt: DateTime.parse(map['createdAt']),
-      updatedAt: DateTime.parse(map['updatedAt']),
+      // ✅ Sửa: Đọc Timestamp từ Firestore và chuyển về DateTime
+      createdAt: (map['createdAt'] as Timestamp? ?? Timestamp.now()).toDate(),
+      updatedAt: (map['updatedAt'] as Timestamp? ?? Timestamp.now()).toDate(),
     );
   }
 
@@ -77,14 +80,6 @@ class ActivityType {
   static const String fertilizing = 'fertilizing';
   static const String pruning = 'pruning';
   static const String observation = 'observation';
-  
+
   static List<String> get all => [watering, fertilizing, pruning, observation];
 }
-
-
-
-
-
-
-
-

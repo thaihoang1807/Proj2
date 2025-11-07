@@ -1,82 +1,73 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../models/user_model.dart';
+import 'package:plant_care_app/models/user_model.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  
+  Future<UserModel?> signUp(String email, String password, String name) async {
+    try {
+      // 1️⃣ Tạo tài khoản Firebase Auth
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
 
-  // Sign in with email and password
+      User? user = result.user;
+      if (user == null) return null;
+
+      // 2️⃣ Tạo đối tượng UserModel
+      final userModel = UserModel(
+        id: user.uid,
+        email: email,
+        name: name,
+        photoUrl: user.photoURL,
+        createdAt: DateTime.now(),
+      );
+
+      // 3️⃣ Lưu UserModel lên Firestore
+      await _db.collection('users').doc(user.uid).set(userModel.toMap());
+
+      return userModel; // ✅ trả về UserModel, đúng kiểu
+    } catch (e) {
+      print('Error in signUp: $e');
+      rethrow;
+    }
+  }
+
   Future<UserModel?> signIn(String email, String password) async {
     try {
       UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return _userFromFirebase(result.user);
+
+      User? user = result.user;
+      if (user == null) return null;
+
+      // Lấy dữ liệu từ Firestore
+      var doc = await _db.collection('users').doc(user.uid).get();
+      if (!doc.exists) return null;
+
+      return UserModel.fromMap(doc.data()!);
     } catch (e) {
-      print('❌ Error signing in: $e');
+      print('Error in signIn: $e');
       rethrow;
     }
   }
 
-  // Sign up with email and password
-  Future<UserModel?> signUp(String email, String password, String name) async {
-    try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      await result.user?.updateDisplayName(name);
-      return _userFromFirebase(result.user);
-    } catch (e) {
-      print('❌ Error signing up: $e');
-      rethrow;
-    }
-  }
-
-  // Sign out
   Future<void> signOut() async {
-    try {
-      await _auth.signOut();
-      print('✅ User signed out');
-    } catch (e) {
-      print('❌ Error signing out: $e');
-      rethrow;
-    }
+    await _auth.signOut();
   }
 
-  // Get current user
   Future<UserModel?> getCurrentUser() async {
-    try {
-      User? user = _auth.currentUser;
-      return _userFromFirebase(user);
-    } catch (e) {
-      print('❌ Error getting current user: $e');
-      return null;
-    }
-  }
-
-  // Convert Firebase User to UserModel
-  UserModel? _userFromFirebase(User? user) {
+    final user = _auth.currentUser;
     if (user == null) return null;
-    return UserModel(
-      id: user.uid,
-      email: user.email ?? '',
-      name: user.displayName ?? '',
-      photoUrl: user.photoURL,
-      createdAt: user.metadata.creationTime ?? DateTime.now(),
-    );
-  }
 
-  // Stream of auth changes
-  Stream<UserModel?> get authStateChanges {
-    return _auth.authStateChanges().map(_userFromFirebase);
+    var doc = await _db.collection('users').doc(user.uid).get();
+    if (!doc.exists) return null;
+
+    return UserModel.fromMap(doc.data()!);
   }
 }
-
-
-
-
-
-
-
-

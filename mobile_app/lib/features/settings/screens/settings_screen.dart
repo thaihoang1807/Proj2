@@ -20,9 +20,19 @@ class SettingsScreen extends StatelessWidget {
           Consumer<AuthProvider>(
             builder: (context, authProvider, _) {
               final user = authProvider.currentUser;
+              final bool hasValidName =
+                  user?.name != null && user!.name.isNotEmpty;
               return ListTile(
                 leading: CircleAvatar(
-                  child: Text(user?.name[0].toUpperCase() ?? 'U'),
+                  // --- LỖI Ở ĐÂY ---
+                  // BẠN ĐANG TRUYỀN 1 CHUỖI TRỰC TIẾP VÀO CIRCLEAVATAR
+                  // hasValidName ? user.name![0].toUpperCase() : 'U', // <-- Lỗi
+
+                  // --- ĐÂY LÀ CÁCH SỬA ---
+                  // BẠN CẦN BỌC CHUỖI ĐÓ TRONG WIDGET TEXT VÀ GÁN VÀO `child`
+                  child: Text(
+                    hasValidName ? user.name![0].toUpperCase() : 'U',
+                  ),
                 ),
                 title: Text(user?.name ?? 'User'),
                 subtitle: Text(user?.email ?? ''),
@@ -30,7 +40,7 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           const Divider(),
-          
+
           // Notifications
           ListTile(
             leading: const Icon(Icons.notifications),
@@ -41,7 +51,7 @@ class SettingsScreen extends StatelessWidget {
               // TODO: Navigate to notification settings
             },
           ),
-          
+
           // Language
           ListTile(
             leading: const Icon(Icons.language),
@@ -52,7 +62,7 @@ class SettingsScreen extends StatelessWidget {
               // TODO: Navigate to language settings
             },
           ),
-          
+
           // Theme
           ListTile(
             leading: const Icon(Icons.palette),
@@ -63,9 +73,9 @@ class SettingsScreen extends StatelessWidget {
               // TODO: Navigate to theme settings
             },
           ),
-          
+
           const Divider(),
-          
+
           // About
           ListTile(
             leading: const Icon(Icons.info),
@@ -85,7 +95,7 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
-          
+
           // Help
           ListTile(
             leading: const Icon(Icons.help),
@@ -95,9 +105,9 @@ class SettingsScreen extends StatelessWidget {
               // TODO: Navigate to help
             },
           ),
-          
+
           const Divider(),
-          
+
           // Logout
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
@@ -116,10 +126,11 @@ class SettingsScreen extends StatelessWidget {
                     TextButton(
                       onPressed: () {
                         context.read<AuthProvider>().signOut();
-                        Navigator.pushReplacementNamed(context, AppRoutes.login);
+                        Navigator.pushReplacementNamed(
+                            context, AppRoutes.login);
                       },
-                      child: const Text('Đăng xuất', 
-                        style: TextStyle(color: Colors.red)),
+                      child: const Text('Đăng xuất',
+                          style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
@@ -131,11 +142,3 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
-
-
-
-
-
-
-
-
