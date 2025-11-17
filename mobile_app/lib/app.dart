@@ -39,7 +39,7 @@ class _PlantCareAppState extends State<PlantCareApp> {
           // 🎨 DEV MODE - Xem tất cả screens không cần Firebase
           // ========================================
           // Uncomment dòng này để vào Dev Mode:
-          initialRoute: AppRoutes.dev,
+          //initialRoute: AppRoutes.dev,
           
           // Hoặc xem từng screen riêng:
           // AppRoutes.login         - Login screen
@@ -53,9 +53,9 @@ class _PlantCareAppState extends State<PlantCareApp> {
           // initialRoute: AppRoutes.home,
           
           // Original code (will restore after testing):
-          // initialRoute: authProvider.isAuthenticated 
-          //     ? AppRoutes.home 
-          //     : AppRoutes.login,
+           initialRoute: authProvider.isAuthenticated 
+               ? AppRoutes.home 
+               : AppRoutes.login,
           onGenerateRoute: AppRoutes.generateRoute,
         );
       },
